@@ -57,29 +57,6 @@ class TopazAddon(BaseServerAddon):
                 )
             )
 
-        # output.append(
-        #     SimpleActionManifest(
-        #         identifier=f"{IDENTIFIER_PREFIX}.upscale_4k",
-        #         label="Topaz: 4k Upscale",
-        #         icon=icon,
-        #         order=100,
-        #         entity_type="version",
-        #         entity_subtypes=None,
-        #         allow_multiselection=False,
-        #     )
-        # )
-        # output.append(
-        #     SimpleActionManifest(
-        #         identifier=f"{IDENTIFIER_PREFIX}.upscale_1080p",
-        #         label="Topaz: 1080p Upscale",
-        #         icon=icon,
-        #         order=100,
-        #         entity_type="version",
-        #         entity_subtypes=None,
-        #         allow_multiselection=False,
-        #     )
-        # )
-
         return output
 
     async def execute_action(
@@ -95,20 +72,32 @@ class TopazAddon(BaseServerAddon):
 
         project_name = executor.context.project_name
         entity_id = executor.context.entity_ids[0]
+        command = None
 
         import re
 
         if re.search("upscale", executor.identifier):
-            return await executor.get_launcher_action_response(
-                args=[
-                    "addon",
-                    "topaz",
-                    "upscale-4k",
-                    "--project",
-                    project_name,
-                    "--entity-id",
-                    entity_id,
-                ]
+            project_settings = await self.get_project_settings(
+                project_name, "production"
             )
+            for preset in project_settings.presets:
+                preset = preset.dict()
+                if preset.get("name") == executor.label:
+                    command = project_settings.presets[executor.label]
+
+            if command:
+                return await executor.get_launcher_action_response(
+                    args=[
+                        "addon",
+                        "topaz",
+                        f"upscale",
+                        "--project",
+                        project_name,
+                        "--entity-id",
+                        entity_id,
+                        "--command",
+                        command,
+                    ]
+                )
 
         raise ValueError(f"Unknown action: {executor.identifier}")

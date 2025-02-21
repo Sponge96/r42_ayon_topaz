@@ -9,7 +9,7 @@ DEFAULT_VALUES = {}
 class PresetModel(BaseSettingsModel):
     enabled: bool = SettingsField(True, title="Enabled")
     name: str = SettingsField("", title="Name")
-    command: str = SettingsField("", title="Command", widget="textarea")
+    command: str = SettingsField("", title="Command")
 
 
 class TopazSettings(BaseSettingsModel):
