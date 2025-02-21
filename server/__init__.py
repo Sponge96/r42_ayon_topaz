@@ -1,3 +1,4 @@
+from typing import Type
 from ayon_server.actions import (
     ActionExecutor,
     ExecuteResponseModel,
@@ -6,12 +7,22 @@ from ayon_server.actions import (
 
 from ayon_server.addons import BaseServerAddon
 
+from .settings import TopazSettings, DEFAULT_VALUES
+
+from nxtools import logging
 
 IDENTIFIER_PREFIX = "topaz.launch"
 
 
-class MyAddonSettings(BaseServerAddon):
-    # Set settings
+class TopazAddon(BaseServerAddon):
+    # Settings
+    settings_model: Type[TopazSettings] = TopazSettings
+
+    async def get_default_settings(self):
+        settings_model_cls = self.get_settings_model()
+        return settings_model_cls(**DEFAULT_VALUES)
+
+    # Webactions
     async def get_simple_actions(
         self,
         project_name: str | None = None,
@@ -26,39 +37,48 @@ class MyAddonSettings(BaseServerAddon):
             "name": "switch_access_2",
         }
 
-        output.append(
-            SimpleActionManifest(
-                identifier=f"{IDENTIFIER_PREFIX}.show_dialog",
-                label="Simple Action",
-                icon=icon,
-                order=100,
-                entity_type="folder",
-                entity_subtypes=None,
-                allow_multiselection=False,
-            )
+        # logging.info(self.get_project_settings(project_name, variant))
+        project_settings = await self.get_project_settings(
+            project_name, variant
         )
-        output.append(
-            SimpleActionManifest(
-                identifier=f"{IDENTIFIER_PREFIX}.upscale_4k",
-                label="Topaz: 4k Upscale",
-                icon=icon,
-                order=100,
-                entity_type="version",
-                entity_subtypes=None,
-                allow_multiselection=False,
+        for preset in project_settings.presets:
+            logging.info(preset.dict())
+            preset = preset.dict()
+            name = preset.get("name")
+            output.append(
+                SimpleActionManifest(
+                    identifier=f"{IDENTIFIER_PREFIX}.upscale_{name}",
+                    label=name,
+                    icon=icon,
+                    order=100,
+                    entity_type="folder",
+                    entity_subtypes=None,
+                    allow_multiselection=False,
+                )
             )
-        )
-        output.append(
-            SimpleActionManifest(
-                identifier=f"{IDENTIFIER_PREFIX}.upscale_1080p",
-                label="Topaz: 1080p Upscale",
-                icon=icon,
-                order=100,
-                entity_type="version",
-                entity_subtypes=None,
-                allow_multiselection=False,
-            )
-        )
+
+        # output.append(
+        #     SimpleActionManifest(
+        #         identifier=f"{IDENTIFIER_PREFIX}.upscale_4k",
+        #         label="Topaz: 4k Upscale",
+        #         icon=icon,
+        #         order=100,
+        #         entity_type="version",
+        #         entity_subtypes=None,
+        #         allow_multiselection=False,
+        #     )
+        # )
+        # output.append(
+        #     SimpleActionManifest(
+        #         identifier=f"{IDENTIFIER_PREFIX}.upscale_1080p",
+        #         label="Topaz: 1080p Upscale",
+        #         icon=icon,
+        #         order=100,
+        #         entity_type="version",
+        #         entity_subtypes=None,
+        #         allow_multiselection=False,
+        #     )
+        # )
 
         return output
 
@@ -76,38 +96,14 @@ class MyAddonSettings(BaseServerAddon):
         project_name = executor.context.project_name
         entity_id = executor.context.entity_ids[0]
 
-        if executor.identifier == f"{IDENTIFIER_PREFIX}.show_dialog":
-            return await executor.get_launcher_action_response(
-                args=[
-                    "addon",
-                    "topaz",
-                    "show-selected-path",
-                    "--project",
-                    project_name,
-                    "--entity-id",
-                    entity_id,
-                ]
-            )
+        import re
 
-        elif executor.identifier == f"{IDENTIFIER_PREFIX}.upscale_4k":
+        if re.search("upscale", executor.identifier):
             return await executor.get_launcher_action_response(
                 args=[
                     "addon",
                     "topaz",
                     "upscale-4k",
-                    "--project",
-                    project_name,
-                    "--entity-id",
-                    entity_id,
-                ]
-            )
-
-        elif executor.identifier == f"{IDENTIFIER_PREFIX}.upscale_1080p":
-            return await executor.get_launcher_action_response(
-                args=[
-                    "addon",
-                    "topaz",
-                    "upscale-1080p",
                     "--project",
                     project_name,
                     "--entity-id",
