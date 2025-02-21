@@ -37,12 +37,10 @@ class TopazAddon(BaseServerAddon):
             "name": "switch_access_2",
         }
 
-        # logging.info(self.get_project_settings(project_name, variant))
         project_settings = await self.get_project_settings(
             project_name, variant
         )
         for preset in project_settings.presets:
-            logging.info(preset.dict())
             preset = preset.dict()
             name = preset.get("name")
             output.append(
@@ -76,21 +74,21 @@ class TopazAddon(BaseServerAddon):
 
         import re
 
-        if re.search("upscale", executor.identifier):
+        if re.search("upscale_", executor.identifier):
             project_settings = await self.get_project_settings(
-                project_name, "production"
+                project_name, executor.variant
             )
             for preset in project_settings.presets:
                 preset = preset.dict()
-                if preset.get("name") == executor.label:
-                    command = project_settings.presets[executor.label]
+                if preset.get("name") == executor.identifier.split("_")[-1]:
+                    command = preset.get("command")
 
             if command:
                 return await executor.get_launcher_action_response(
                     args=[
                         "addon",
                         "topaz",
-                        f"upscale",
+                        "upscale",
                         "--project",
                         project_name,
                         "--entity-id",
